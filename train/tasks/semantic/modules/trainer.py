@@ -28,7 +28,7 @@ def keep_variance_fn(x):
 def one_hot_pred_from_label(y_pred, labels):
     y_true = torch.zeros_like(y_pred)
     ones = torch.ones_like(y_pred)
-    indexes = [l for l in labels]
+    indexes = list(labels)
     y_true[torch.arange(labels.size(0)), indexes] = ones[torch.arange(labels.size(0)), indexes]
 
     return y_true
@@ -48,9 +48,8 @@ class SoftmaxHeteroscedasticLoss(torch.nn.Module):
 
 
 def save_to_log(logdir, logfile, message):
-    f = open(logdir + '/' + logfile, "a")
-    f.write(message + '\n')
-    f.close()
+    with open(f'{logdir}/{logfile}', "a") as f:
+        f.write(message + '\n')
     return
 
 
@@ -88,9 +87,17 @@ class Trainer():
                      "best_val_iou": 0}
 
         # get the data
-        parserModule = imp.load_source("parserModule",
-                                       booger.TRAIN_PATH + '/tasks/semantic/dataset/' +
-                                       self.DATA["name"] + '/parser.py')
+        parserModule = imp.load_source(
+            "parserModule",
+            (
+                (
+                    f'{booger.TRAIN_PATH}/tasks/semantic/dataset/'
+                    + self.DATA["name"]
+                )
+                + '/parser.py'
+            ),
+        )
+
         self.parser = parserModule.Parser(root=self.datadir,
                                           train_sequences=self.DATA["split"]["train"],
                                           valid_sequences=self.DATA["split"]["valid"],
@@ -121,12 +128,13 @@ class Trainer():
         print("Loss weights from content: ", self.loss_w.data)
 
         with torch.no_grad():
-            if not self.uncertainty:
-                self.model = SalsaNext(self.parser.get_n_classes())
-            else:
-                self.model = SalsaNextUncertainty(self.parser.get_n_classes())
+            self.model = (
+                SalsaNextUncertainty(self.parser.get_n_classes())
+                if self.uncertainty
+                else SalsaNext(self.parser.get_n_classes())
+            )
 
-        self.tb_logger = Logger(self.log + "/tb")
+        self.tb_logger = Logger(f"{self.log}/tb")
 
         # GPU?
         self.gpu = False
@@ -176,8 +184,10 @@ class Trainer():
 
         if self.path is not None:
             torch.nn.Module.dump_patches = True
-            w_dict = torch.load(path + "/SalsaNext",
-                                map_location=lambda storage, loc: storage)
+            w_dict = torch.load(
+                f"{path}/SalsaNext", map_location=lambda storage, loc: storage
+            )
+
             self.model.load_state_dict(w_dict['state_dict'], strict=True)
             self.optimizer.load_state_dict(w_dict['optimizer'])
             self.epoch = w_dict['epoch'] + 1
@@ -233,15 +243,14 @@ class Trainer():
                 tag = tag.replace('.', '/')
                 logger.histo_summary(tag, value.data.cpu().numpy(), epoch)
                 if value.grad is not None:
-                    logger.histo_summary(
-                        tag + '/grad', value.grad.data.cpu().numpy(), epoch)
+                    logger.histo_summary(f'{tag}/grad', value.grad.data.cpu().numpy(), epoch)
 
         if img_summary and len(imgs) > 0:
             directory = os.path.join(logdir, "predictions")
             if not os.path.isdir(directory):
                 os.makedirs(directory)
             for i, img in enumerate(imgs):
-                name = os.path.join(directory, str(i) + ".png")
+                name = os.path.join(directory, f"{str(i)}.png")
                 cv2.imwrite(name, img)
 
     def train(self):

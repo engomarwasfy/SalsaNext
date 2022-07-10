@@ -92,13 +92,14 @@ if __name__ == '__main__':
     )
 
     FLAGS, unparsed = parser.parse_known_args()
-    FLAGS.log = FLAGS.log + '/logs/' + datetime.datetime.now().strftime("%Y-%-m-%d-%H:%M") + FLAGS.name
-    if FLAGS.uncertainty:
-        params = SalsaNextUncertainty(20)
-        pytorch_total_params = sum(p.numel() for p in params.parameters() if p.requires_grad)
-    else:
-        params = SalsaNext(20)
-        pytorch_total_params = sum(p.numel() for p in params.parameters() if p.requires_grad)
+    FLAGS.log = (
+        f'{FLAGS.log}/logs/'
+        + datetime.datetime.now().strftime("%Y-%-m-%d-%H:%M")
+        + FLAGS.name
+    )
+
+    params = SalsaNextUncertainty(20) if FLAGS.uncertainty else SalsaNext(20)
+    pytorch_total_params = sum(p.numel() for p in params.parameters() if p.requires_grad)
     # print summary of what we will do
     print("----------")
     print("INTERFACE:")
@@ -106,7 +107,7 @@ if __name__ == '__main__':
     print("arch_cfg", FLAGS.arch_cfg)
     print("data_cfg", FLAGS.data_cfg)
     print("uncertainty", FLAGS.uncertainty)
-    print("Total of Trainable Parameters: {}".format(millify(pytorch_total_params,2)))
+    print(f"Total of Trainable Parameters: {millify(pytorch_total_params, 2)}")
     print("log", FLAGS.log)
     print("pretrained", FLAGS.pretrained)
     print("----------\n")
@@ -116,7 +117,7 @@ if __name__ == '__main__':
 
     # open arch config file
     try:
-        print("Opening arch config file %s" % FLAGS.arch_cfg)
+        print(f"Opening arch config file {FLAGS.arch_cfg}")
         ARCH = yaml.safe_load(open(FLAGS.arch_cfg, 'r'))
     except Exception as e:
         print(e)
@@ -125,7 +126,7 @@ if __name__ == '__main__':
 
     # open data config file
     try:
-        print("Opening data config file %s" % FLAGS.data_cfg)
+        print(f"Opening data config file {FLAGS.data_cfg}")
         DATA = yaml.safe_load(open(FLAGS.data_cfg, 'r'))
     except Exception as e:
         print(e)
@@ -136,13 +137,12 @@ if __name__ == '__main__':
     try:
         if FLAGS.pretrained == "":
             FLAGS.pretrained = None
-            if os.path.isdir(FLAGS.log):
-                if os.listdir(FLAGS.log):
-                    answer = raw_input("Log Directory is not empty. Do you want to proceed? [y/n]  ")
-                    if answer == 'n':
-                        quit()
-                    else:
-                        shutil.rmtree(FLAGS.log)
+            if os.path.isdir(FLAGS.log) and os.listdir(FLAGS.log):
+                answer = raw_input("Log Directory is not empty. Do you want to proceed? [y/n]  ")
+                if answer == 'n':
+                    quit()
+                else:
+                    shutil.rmtree(FLAGS.log)
             os.makedirs(FLAGS.log)
         else:
             FLAGS.log = FLAGS.pretrained
@@ -153,20 +153,19 @@ if __name__ == '__main__':
         quit()
 
     # does model folder exist?
-    if FLAGS.pretrained is not None:
-        if os.path.isdir(FLAGS.pretrained):
-            print("model folder exists! Using model from %s" % (FLAGS.pretrained))
-        else:
-            print("model folder doesnt exist! Start with random weights...")
-    else:
+    if FLAGS.pretrained is None:
         print("No pretrained directory found.")
 
+    elif os.path.isdir(FLAGS.pretrained):
+        print(f"model folder exists! Using model from {FLAGS.pretrained}")
+    else:
+        print("model folder doesnt exist! Start with random weights...")
     # copy all files to log folder (to remember what we did, and make inference
     # easier). Also, standardize name to be able to open it later
     try:
-        print("Copying files to %s for further reference." % FLAGS.log)
-        copyfile(FLAGS.arch_cfg, FLAGS.log + "/arch_cfg.yaml")
-        copyfile(FLAGS.data_cfg, FLAGS.log + "/data_cfg.yaml")
+        print(f"Copying files to {FLAGS.log} for further reference.")
+        copyfile(FLAGS.arch_cfg, f"{FLAGS.log}/arch_cfg.yaml")
+        copyfile(FLAGS.data_cfg, f"{FLAGS.log}/data_cfg.yaml")
     except Exception as e:
         print(e)
         print("Error copying files, check permissions. Exiting...")

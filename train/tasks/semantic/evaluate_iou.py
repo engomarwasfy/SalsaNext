@@ -15,9 +15,8 @@ from common.laserscan import SemLaserScan
 # possible splits
 splits = ['train','valid','test']
 def save_to_log(logdir,logfile,message):
-    f = open(logdir+'/'+logfile, "a")
-    f.write(message+'\n')
-    f.close()
+    with open(f'{logdir}/{logfile}', "a") as f:
+        f.write(message+'\n')
     return
 
 def eval(test_sequences,splits,pred):
@@ -25,8 +24,7 @@ def eval(test_sequences,splits,pred):
     scan_names = []
     for sequence in test_sequences:
         sequence = '{0:02d}'.format(int(sequence))
-        scan_paths = os.path.join(FLAGS.dataset, "sequences",
-                                  str(sequence), "velodyne")
+        scan_paths = os.path.join(FLAGS.dataset, "sequences", sequence, "velodyne")
         # populate the scan names
         seq_scan_names = [os.path.join(dp, f) for dp, dn, fn in os.walk(
             os.path.expanduser(scan_paths)) for f in fn if ".bin" in f]
@@ -38,8 +36,7 @@ def eval(test_sequences,splits,pred):
     label_names = []
     for sequence in test_sequences:
         sequence = '{0:02d}'.format(int(sequence))
-        label_paths = os.path.join(FLAGS.dataset, "sequences",
-                                   str(sequence), "labels")
+        label_paths = os.path.join(FLAGS.dataset, "sequences", sequence, "labels")
         # populate the label names
         seq_label_names = [os.path.join(dp, f) for dp, dn, fn in os.walk(
             os.path.expanduser(label_paths)) for f in fn if ".label" in f]
@@ -188,7 +185,7 @@ if __name__ == '__main__':
 
     # open data config file
     try:
-        print("Opening data config file %s" % FLAGS.data_cfg)
+        print(f"Opening data config file {FLAGS.data_cfg}")
         DATA = yaml.safe_load(open(FLAGS.data_cfg, 'r'))
     except Exception as e:
         print(e)

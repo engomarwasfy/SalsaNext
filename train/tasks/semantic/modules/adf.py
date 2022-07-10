@@ -178,7 +178,7 @@ class Dropout(nn.Module):
         self._keep_variance_fn = keep_variance_fn
         self.inplace = inplace
         if p < 0 or p > 1:
-            raise ValueError("dropout probability has to be between 0 and 1, " "but got {}".format(p))
+            raise ValueError(f"dropout probability has to be between 0 and 1, but got {p}")
         self.p = p
 
     def forward(self, inputs_mean, inputs_variance):
@@ -312,18 +312,17 @@ class BatchNorm2d(nn.Module):
         # exponential_average_factor is self.momentum set to
         # (when it is available) only so that if gets updated
         # in ONNX graph when this node is exported to ONNX.
-        if self.momentum is None:
-            exponential_average_factor = 0.0
-        else:
-            exponential_average_factor = self.momentum
-
-        if self.training and self.track_running_stats:
-            if self.num_batches_tracked is not None:
-                self.num_batches_tracked += 1
-                if self.momentum is None:  # use cumulative moving average
-                    exponential_average_factor = 1.0 / float(self.num_batches_tracked)
-                else:  # use exponential moving average
-                    exponential_average_factor = self.momentum
+        exponential_average_factor = 0.0 if self.momentum is None else self.momentum
+        if (
+            self.training
+            and self.track_running_stats
+            and self.num_batches_tracked is not None
+        ):
+            self.num_batches_tracked += 1
+            if self.momentum is None:  # use cumulative moving average
+                exponential_average_factor = 1.0 / float(self.num_batches_tracked)
+            else:  # use exponential moving average
+                exponential_average_factor = self.momentum
 
         outputs_mean = F.batch_norm(
             inputs_mean, self.running_mean, self.running_var, self.weight, self.bias,
@@ -414,7 +413,7 @@ class Sequential(nn.Module):
         size = len(self)
         idx = operator.index(idx)
         if not -size <= idx < size:
-            raise IndexError('index {} is out of range'.format(idx))
+            raise IndexError(f'index {idx} is out of range')
         idx %= size
         return next(islice(iterator, idx, None))
 

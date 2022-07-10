@@ -45,8 +45,7 @@ class ResContextBlock(nn.Module):
         resA = self.act3(*resA)
         resA2 = self.bn2(*resA)
 
-        output = shortcut[0] + resA2[0],shortcut[1] + resA2[1]
-        return output
+        return shortcut[0] + resA2[0], shortcut[1] + resA2[1]
 
 
 class ResBlock(nn.Module):
@@ -107,19 +106,12 @@ class ResBlock(nn.Module):
         resA = shortcut[0] + resA[0],shortcut[1] + resA[1]
 
 
+        resB = self.dropout(*resA) if self.drop_out else resA
         if self.pooling:
-            if self.drop_out:
-                resB = self.dropout(*resA)
-            else:
-                resB = resA
             resB = self.pool(*resB)
 
             return resB, resA
         else:
-            if self.drop_out:
-                resB = self.dropout(*resA)
-            else:
-                resB = resA
             return resB
 
 
@@ -240,6 +232,4 @@ class SalsaNextUncertainty(nn.Module):
         up2e = self.upBlock3(up3e, down1b)
         up1 = self.upBlock4(up2e, down0b)
 
-        logits = self.logits(*up1)
-
-        return logits
+        return self.logits(*up1)
